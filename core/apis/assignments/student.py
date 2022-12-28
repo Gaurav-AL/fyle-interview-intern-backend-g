@@ -5,19 +5,19 @@ from core.apis.responses import APIResponse
 from core.models.assignments import Assignment
 from core.models.users import User
 from .schema import AssignmentSchema, AssignmentSubmitSchema
-student_assignments_resources = Blueprint('student_assignments_resources', __name__)
+from core.libs import  assertions
 
+student_assignments_resources = Blueprint('student_assignments_resources', __name__)
 
 @student_assignments_resources.route('/assignments', methods=['GET'], strict_slashes=False)
 @decorators.auth_principal
 def list_assignments(p):
     """Returns list of assignments"""
     user_data = User.get_by_id(p.user_id)
-    
+    assertions.assert_found(user_data,"User Not Found")
     students_assignments = Assignment.get_assignments_by_student(p.student_id)
     students_assignments_dump = AssignmentSchema().dump(students_assignments, many=True)
     return APIResponse.respond(data=students_assignments_dump)
-
 
 @student_assignments_resources.route('/assignments', methods=['POST'], strict_slashes=False)
 @decorators.accept_payload
@@ -26,7 +26,6 @@ def upsert_assignment(p, incoming_payload):
     """Create or Edit an assignment"""
     assignment = AssignmentSchema().load(incoming_payload)
     assignment.student_id = p.student_id
-
     upserted_assignment = Assignment.upsert(assignment)
     db.session.commit()
     upserted_assignment_dump = AssignmentSchema().dump(upserted_assignment)

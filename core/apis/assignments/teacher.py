@@ -6,20 +6,19 @@ from core.apis.responses import APIResponse
 from core.models.assignments import Assignment
 from core.models.users import User
 from .schema import AssignmentSchema,AssignmentGradeSchema
-teacher_assignments_resources = Blueprint('teacher_assignments_resources', __name__)
+from core.libs import  assertions
 
+teacher_assignments_resources = Blueprint('teacher_assignments_resources', __name__)
 
 @teacher_assignments_resources.route('/assignments', methods=['GET'], strict_slashes=False)
 @decorators.auth_principal
 def list_assignments(p):
     """Returns list of assignments"""
     user_data = User.get_by_id(p.user_id)
-    
+    assertions.assert_found(user_data,"User Not Found")
     assignments_submitted_to_this_teacher = Assignment.get_assignments_by_teacher(p.teacher_id)
     assignments_submitted_dump = AssignmentSchema().dump(assignments_submitted_to_this_teacher , many=True)
     return APIResponse.respond(data=assignments_submitted_dump)
-
-
 
 @teacher_assignments_resources.route('/assignments/grade', methods=['POST'], strict_slashes=False)
 @decorators.accept_payload
@@ -27,7 +26,6 @@ def list_assignments(p):
 def grade_assignment(p, incoming_payload):
     """Grade an assignment"""
     grade_assignment_payload = AssignmentGradeSchema().load(incoming_payload)
- 
     graded_assignment = Assignment._grade(
         _id= grade_assignment_payload.id,
         grade = grade_assignment_payload.grade,

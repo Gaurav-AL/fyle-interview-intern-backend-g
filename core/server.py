@@ -18,9 +18,7 @@ def ready():
         'status': 'ready',
         'time': helpers.get_utc_now()
     })
-
     return response
-
 
 @app.errorhandler(Exception)
 def handle_error(err):
@@ -33,8 +31,6 @@ def handle_error(err):
         return jsonify(
             error=err.__class__.__name__, message=err.messages
         ),400
-    
-
     raise err
 
 

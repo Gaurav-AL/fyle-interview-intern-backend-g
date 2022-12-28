@@ -17,9 +17,7 @@ def test_get_assignments_teacher_2(client, h_teacher_2):
         '/teacher/assignments',
         headers=h_teacher_2
     )
-
     assert response.status_code == 200
-
     data = response.json['data']
     for assignment in data:
         assert assignment['teacher_id'] == 2
@@ -38,10 +36,8 @@ def test_grade_assignment_cross(client, h_teacher_2):
             "grade": "A"
         }
     )
-
     assert response.status_code == 400
     data = response.json
-
     assert data['error'] == 'FyleError'
 
 
@@ -79,7 +75,6 @@ def test_grade_assignment_bad_assignment(client, h_teacher_1):
 
     assert response.status_code == 404
     data = response.json
-
     assert data['error'] == 'FyleError'
 
 
@@ -98,7 +93,6 @@ def test_grade_assignment_draft_assignment(client, h_teacher_1):
 
     assert response.status_code == 400
     data = response.json
-
     assert data['error'] == 'FyleError'
     
 def test_grade_validation(client, h_teacher_2):
@@ -113,8 +107,6 @@ def test_grade_validation(client, h_teacher_2):
             "grade": "A"
         }
     )
-    
-    
     assert response.status_code == 200
     data = response.json['data']
     assert data['state'] == 'GRADED'
@@ -135,7 +127,6 @@ def test_grade_validation_2(client,h_teacher_2):
     
     assert response.status_code == 400
     data = response.json
-    print(data)
     assert data['error'] == 'ValidationError'
     assert data['message'][0] == 'Bad Grade'
      
