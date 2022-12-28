@@ -1,12 +1,16 @@
 import enum
+
+import pytest
 from core import db
 from core.apis.decorators import Principal
 from core.libs import helpers, assertions
 from core.models.teachers import Teacher
 from core.models.students import Student
+
 from sqlalchemy.types import Enum as BaseEnum
-
-
+from flask import jsonify
+from marshmallow.exceptions import ValidationError
+from core.libs.exceptions import FyleError
 class GradeEnum(str, enum.Enum):
     A = 'A'
     B = 'B'
@@ -62,12 +66,37 @@ class Assignment(db.Model):
     @classmethod
     def submit(cls, _id, teacher_id, principal: Principal):
         assignment = Assignment.get_by_id(_id)
+        if(assignment.state == AssignmentStateEnum.SUBMITTED):
+            raise FyleError(400,"only a draft assignment can be submitted")
         assertions.assert_found(assignment, 'No assignment with this id was found')
         assertions.assert_valid(assignment.student_id == principal.student_id, 'This assignment belongs to some other student')
-        assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
-
+        assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted') 
+           
         assignment.teacher_id = teacher_id
         assignment.state = AssignmentStateEnum.SUBMITTED
+        db.session.flush()
+
+        return assignment
+    
+    @classmethod
+    def _grade(cls, _id, grade, principal: Principal):
+        assignment = Assignment.get_by_id(_id)
+        if(len(grade) != 1):
+            raise ValidationError("Bad Grade")
+        assertions.assert_found(assignment, 'No assignment with this id was found')
+        assertions.assert_valid(assignment.state == AssignmentStateEnum.SUBMITTED, 'only a submitted assignment can be graded')
+        assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be Graded')
+        assertions.assert_valid(assignment.teacher_id == principal.teacher_id, f'assignment submitted to teacher {assignment.teacher_id}')
+        if(0 <=len(assignment.content) <=4):
+            assignment.grade = GradeEnum.D
+        elif(5 <len(assignment.content) <=6 ):
+            assignment.grade = GradeEnum.C
+        elif(7 <len(assignment.content) <= 7 ):
+            assignment.grade = GradeEnum.B
+        else:
+            assignment.grade = GradeEnum.A
+               
+        assignment.state = AssignmentStateEnum.GRADED
         db.session.flush()
 
         return assignment
@@ -75,3 +104,12 @@ class Assignment(db.Model):
     @classmethod
     def get_assignments_by_student(cls, student_id):
         return cls.filter(cls.student_id == student_id).all()
+    
+    
+    @classmethod
+    def get_assignments_by_teacher(cls, teacher_id):
+        
+        return cls.filter(cls.teacher_id == teacher_id, cls.state == AssignmentStateEnum.SUBMITTED).all()
+    
+   
+     
